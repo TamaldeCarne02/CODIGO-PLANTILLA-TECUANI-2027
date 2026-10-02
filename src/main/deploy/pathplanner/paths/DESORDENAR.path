@@ -1,0 +1,102 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 8.301,
+        "y": 6.715
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 9.044516853932583,
+        "y": 5.655370786516853
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 7.638157303370786,
+        "y": 5.390404494382023
+      },
+      "prevControl": {
+        "x": 7.369143277167907,
+        "y": 5.561900936086358
+      },
+      "nextControl": {
+        "x": 8.45343820224719,
+        "y": 4.870662921348314
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 8.402483146067414,
+        "y": 4.238820224719101
+      },
+      "prevControl": {
+        "x": 8.605269662921348,
+        "y": 4.652193117977528
+      },
+      "nextControl": {
+        "x": 8.19969662921348,
+        "y": 3.8254473314606736
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 7.7808314606741575,
+        "y": 3.311438202247192
+      },
+      "prevControl": {
+        "x": 7.909344701154684,
+        "y": 3.525877813842612
+      },
+      "nextControl": {
+        "x": 7.6523182201936315,
+        "y": 3.0969985906517725
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 8.596,
+        "y": 2.343
+      },
+      "prevControl": {
+        "x": 7.596,
+        "y": 2.343
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [],
+  "constraintZones": [],
+  "pointTowardsZones": [],
+  "eventMarkers": [],
+  "globalConstraints": {
+    "maxVelocity": 2.0,
+    "maxAcceleration": 2.0,
+    "maxAngularVelocity": 520.0,
+    "maxAngularAcceleration": 750.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": -90.0
+  },
+  "reversed": false,
+  "folder": "BLUE ALIENCE",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": -90.0
+  },
+  "useDefaultConstraints": true
+}
