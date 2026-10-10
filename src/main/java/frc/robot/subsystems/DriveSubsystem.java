@@ -21,7 +21,17 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
+// Añadir a los imports existentes de DriveSubsystem.java:
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.util.DriveFeedforwards;
+import com.pathplanner.lib.util.swerve.SwerveSetpoint;
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.Constants.SetpointConstants;
+
 public class DriveSubsystem extends SubsystemBase {
+private final SwerveSetpointGenerator m_setpointGenerator;
+    private SwerveSetpoint m_previousSetpoint;
   // Create MAXSwerveModules
   private final MAXSwerveModule m_frontLeft = new MAXSwerveModule(
       DriveConstants.kFrontLeftDrivingCanId,
@@ -59,6 +69,33 @@ public class DriveSubsystem extends SubsystemBase {
 
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
+     RobotConfig config;
+    try {
+        config = RobotConfig.fromGUISettings();
+    } catch (Exception e) {
+        DriverStation.reportError("No se pudo cargar RobotConfig de PathPlanner", e.getStackTrace());
+        config = null;
+    }
+
+    // ===== NUEVO: Crear el generador =====
+    if (config != null) {
+        m_setpointGenerator = new SwerveSetpointGenerator(
+            config,
+            SetpointConstants.kMaxSteerVelocityRadPerSec
+        );
+    } else {
+        m_setpointGenerator = null;
+    }
+
+    // ===== NUEVO: Inicializar previousSetpoint con el estado ACTUAL =====
+    m_previousSetpoint = new SwerveSetpoint(
+        getRobotRelativeSpeeds(),
+        new SwerveModuleState[] {
+            m_frontLeft.getState(), m_frontRight.getState(),
+            m_rearLeft.getState(), m_rearRight.getState()
+        },
+        DriveFeedforwards.zeros(4)
+    );
     // Usage reporting for MAXSwerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_MaxSwerve);
   }
@@ -128,6 +165,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_frontRight.setDesiredState(swerveModuleStates[1]);
     m_rearLeft.setDesiredState(swerveModuleStates[2]);
     m_rearRight.setDesiredState(swerveModuleStates[3]);
+    
   }
 
   /**
@@ -223,4 +261,6 @@ public class DriveSubsystem extends SubsystemBase {
   public double getTurnRate() {
     return m_gyro.getRate() * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
   }
+  
+  
 }
