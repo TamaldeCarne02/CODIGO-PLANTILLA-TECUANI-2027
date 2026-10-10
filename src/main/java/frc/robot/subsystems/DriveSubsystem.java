@@ -14,9 +14,10 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-
+import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
@@ -27,6 +28,7 @@ import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.SetpointConstants;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -111,6 +113,30 @@ private final SwerveSetpointGenerator m_setpointGenerator;
             m_rearLeft.getPosition(),
             m_rearRight.getPosition()
         });
+        // ===== Telemetría por NetworkTables (sin AdvantageKit) =====
+    SmartDashboard.putNumber("Drive/DesiredVx",
+        m_previousSetpoint.robotRelativeSpeeds().vxMetersPerSecond);
+    SmartDashboard.putNumber("Drive/DesiredVy",
+        m_previousSetpoint.robotRelativeSpeeds().vyMetersPerSecond);
+    SmartDashboard.putNumber("Drive/DesiredOmega",
+        m_previousSetpoint.robotRelativeSpeeds().omegaRadiansPerSecond);
+
+    SmartDashboard.putNumber("Drive/FL_Angle",
+        m_previousSetpoint.moduleStates()[0].angle.getDegrees());
+    SmartDashboard.putNumber("Drive/FL_Speed",
+        m_previousSetpoint.moduleStates()[0].speedMetersPerSecond);
+    SmartDashboard.putNumber("Drive/FR_Angle",
+        m_previousSetpoint.moduleStates()[1].angle.getDegrees());
+    SmartDashboard.putNumber("Drive/FR_Speed",
+        m_previousSetpoint.moduleStates()[1].speedMetersPerSecond);
+    SmartDashboard.putNumber("Drive/RL_Angle",
+        m_previousSetpoint.moduleStates()[2].angle.getDegrees());
+    SmartDashboard.putNumber("Drive/RL_Speed",
+        m_previousSetpoint.moduleStates()[2].speedMetersPerSecond);
+    SmartDashboard.putNumber("Drive/RR_Angle",
+        m_previousSetpoint.moduleStates()[3].angle.getDegrees());
+    SmartDashboard.putNumber("Drive/RR_Speed",
+        m_previousSetpoint.moduleStates()[3].speedMetersPerSecond);
   }
 
   /**
@@ -137,6 +163,8 @@ private final SwerveSetpointGenerator m_setpointGenerator;
             m_rearRight.getPosition()
         },
         pose);
+         // ← añade esta línea:
+    resetSetpoint();
   }
 
   /**
@@ -172,40 +200,84 @@ private final SwerveSetpointGenerator m_setpointGenerator;
    * NUEVO MÉTODO PARA PATHPLANNER: Drive robot-relative
    * Este método usa velocidades en el sistema de referencia del robot
    */
-  public void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
-    // Discretize helps with accuracy
-    ChassisSpeeds discretized = ChassisSpeeds.discretize(robotRelativeSpeeds, 0.02);
-    
-    // Convert to swerve module states
-    var swerveModuleStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(discretized);
-    
-    // Desaturate wheel speeds
-    SwerveDriveKinematics.desaturateWheelSpeeds(
-        swerveModuleStates, DriveConstants.kMaxSpeedMetersPerSecond);
-    
-    // Set the module states
-    m_frontLeft.setDesiredState(swerveModuleStates[0]);
-    m_frontRight.setDesiredState(swerveModuleStates[1]);
-    m_rearLeft.setDesiredState(swerveModuleStates[2]);
-    m_rearRight.setDesiredState(swerveModuleStates[3]);
-  }
-
-  /**
-   * NUEVO MÉTODO PARA PATHPLANNER: Get robot-relative speeds
-   * Retorna las velocidades actuales del robot en su propio sistema de referencia
-   */
-  public ChassisSpeeds getRobotRelativeSpeeds() {
-    // Get current module states
-    SwerveModuleState[] states = {
+ // ================================================================
+// NUEVO: Obtener velocidades actuales del chasis (relativas al robot)
+// ================================================================
+public ChassisSpeeds getRobotRelativeSpeeds() {
+    return Constants.DriveConstants.kDriveKinematics.toChassisSpeeds(
         m_frontLeft.getState(),
         m_frontRight.getState(),
         m_rearLeft.getState(),
         m_rearRight.getState()
-    };
-    
-    // Convert to chassis speeds
-    return DriveConstants.kDriveKinematics.toChassisSpeeds(states);
-  }
+    );
+}
+
+// ================================================================
+// NUEVO: driveRobotRelative con SwerveSetpointGenerator
+// ================================================================
+/**
+ * Conduce el robot usando el SwerveSetpointGenerator.
+ *
+ * IMPORTANTE: NO discretices las velocidades antes de llamar a este método.
+ * El generador YA lo hace internamente.
+ */
+public void driveRobotRelative(ChassisSpeeds speeds) {
+    if (m_setpointGenerator == null) {
+        // Fallback: si el config no cargó, aplicar directamente
+        setModuleStates(Constants.DriveConstants.kDriveKinematics
+            .toSwerveModuleStates(speeds));
+        return;
+    }
+
+    // Caso especial: velocidades casi cero → evitar error de "zero force vector"
+    if (Math.abs(speeds.vxMetersPerSecond) < 0.001
+        && Math.abs(speeds.vyMetersPerSecond) < 0.001
+        && Math.abs(speeds.omegaRadiansPerSecond) < 0.001) {
+        setModuleStates(Constants.DriveConstants.kDriveKinematics
+            .toSwerveModuleStates(speeds));
+        m_previousSetpoint = new SwerveSetpoint(
+            speeds,
+            new SwerveModuleState[] {
+                m_frontLeft.getState(),  m_frontRight.getState(),
+                m_rearLeft.getState(),   m_rearRight.getState()
+            },
+            DriveFeedforwards.zeros(4)
+        );
+        return;
+    }
+
+    // Generar setpoint respetando restricciones cinemáticas
+    m_previousSetpoint = m_setpointGenerator.generateSetpoint(
+        m_previousSetpoint,
+        speeds,
+        SetpointConstants.kLoopPeriodSec
+    );
+
+    // Aplicar los estados generados
+    setModuleStates(m_previousSetpoint.moduleStates());
+}
+
+// ================================================================
+// NUEVO: resetSetpoint
+// ================================================================
+/**
+ * Resetea el previousSetpoint al estado ACTUAL del robot.
+ *
+ * Llamar a este método:
+ * - Al inicio de un autónomo (DESPUÉS de resetOdometry)
+ * - Al cambiar de modo (disabled → teleop)
+ * - Después de una colisión fuerte
+ */
+public void resetSetpoint() {
+    m_previousSetpoint = new SwerveSetpoint(
+        getRobotRelativeSpeeds(),
+        new SwerveModuleState[] {
+            m_frontLeft.getState(),  m_frontRight.getState(),
+            m_rearLeft.getState(),   m_rearRight.getState()
+        },
+        DriveFeedforwards.zeros(4)
+    );
+}
 
   /**
    * Sets the wheels into an X formation to prevent movement.
