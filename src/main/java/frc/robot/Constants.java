@@ -130,6 +130,10 @@ public final class Constants {
     public static final int MOTOR_CLAIMBER_PORT2 = 15;
     public static final int djiwoa = 498;
 
+    public static final int djiwoiodeja = 498;
+    
+    
+
   }
 
 
