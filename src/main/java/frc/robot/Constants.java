@@ -128,9 +128,29 @@ public final class Constants {
     public static final double MOTOR_CLAIMBER_SPEED2 = -0.5;
     public static final int MOTOR_CLAIMBER_PORT = 14;
     public static final int djiwoa = 498;
-
-
   }
+   public static final class SetpointConstants {
+
+        /**
+         * Velocidad MÁXIMA de rotación del módulo de dirección (steer), en rad/s.
+         *
+         * Cálculo para MAXSwerve + NEO 550:
+         *   RPM libre NEO 550:        ~11000 RPM
+         *   Reducción turning:        26.09 : 1
+         *   moduleRPS = (11000/60) / 26.09 ≈ 7.03 RPS
+         *   moduleRadPerSec = 7.03 * 2π ≈ 44.1 rad/s  (teórico, sin carga)
+         *
+         * Usamos un valor conservador (≈25% del teórico) para carga real.
+         */
+        public static final double kMaxSteerVelocityRadPerSec = 10.0;
+
+        /**
+         * Período del loop del robot en segundos.
+         * WPILib corre a 50 Hz → 1/50 = 0.02 s.
+         */
+        public static final double kLoopPeriodSec = 0.02;
+    }
+
 
 
 
