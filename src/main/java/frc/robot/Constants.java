@@ -127,7 +127,9 @@ public final class Constants {
     public static final double MOTOR_CLAIMBER_SPEED = 0.5;
     public static final double MOTOR_CLAIMBER_SPEED2 = -0.5;
     public static final int MOTOR_CLAIMBER_PORT = 14;
+    public static final int MOTOR_CLAIMBER_PORT2 = 15;
     public static final int djiwoa = 498;
+
   }
    public static final class SetpointConstants {
 
