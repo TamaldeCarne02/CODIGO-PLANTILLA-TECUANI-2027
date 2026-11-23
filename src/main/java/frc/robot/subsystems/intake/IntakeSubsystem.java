@@ -7,11 +7,13 @@ import frc.robot.subsystems.intake.IntakeIO.IntakeIOInputs;
 
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.inputs.LoggableInputs;
+import frc.robot.subsystems.intake.IntakeIO.IntakeIOInputsAutoLogged;
 
 public class IntakeSubsystem extends SubsystemBase {
 
     private final IntakeIO io;
     private final IntakeIOInputsAutoLogged inputs = new IntakeIOInputsAutoLogged();
+
 
     
     public IntakeSubsystem(IntakeIO io) {

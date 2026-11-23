@@ -68,14 +68,8 @@ public class MAXSwerveModule {
    * @return The current state of the module.
    */
   public SwerveModuleState getState() {
-    // Convertir RPM del motor → m/s del chasis
-    double velocityMetersPerSec =
-        (m_drivingEncoder.getVelocity() / 60.0)
-        * Constants.ModuleConstants.kWheelCircumferenceMeters
-        / Constants.ModuleConstants.kDrivingMotorReduction;
-
     return new SwerveModuleState(
-        velocityMetersPerSec,
+        m_drivingEncoder.getVelocity(),
         new Rotation2d(m_turningEncoder.getPosition() - m_chassisAngularOffset));
 }
 
@@ -92,9 +86,18 @@ public SwerveModulePosition getPosition() {
         * Constants.ModuleConstants.kWheelCircumferenceMeters;
 
     return new SwerveModulePosition(
-        positionMeters,
+        m_drivingEncoder.getPosition(),
         new Rotation2d(m_turningEncoder.getPosition() - m_chassisAngularOffset));
 }
+
+
+  /**
+   * Returns the last desired state commanded to the module (sin offset aplicado).
+   * Lo usaremos para registrar los "ModuleTargets" en AdvantageKit.
+   */
+  public SwerveModuleState getDesiredState() {
+    return m_desiredState;
+  }
 
   /**
    * Sets the desired state for the module.
