@@ -21,6 +21,10 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
+import com.ctre.phoenix6.hardware.Pigeon2;
+
+import org.littletonrobotics.junction.Logger;
+
 
 public class DriveSubsystem extends SubsystemBase {
   // Create MAXSwerveModules
@@ -46,11 +50,13 @@ public class DriveSubsystem extends SubsystemBase {
 
   // The gyro sensor
   private final AHRS m_gyro = new AHRS(NavXComType.kMXP_SPI);
+  private final Pigeon2 m_pigeon = new Pigeon2(2,"rio");
+
 
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
       DriveConstants.kDriveKinematics,
-      Rotation2d.fromDegrees(m_gyro.getAngle()),
+      Rotation2d.fromDegrees(m_gyro.getAngle()), //m_gyro.getAngle()
       new SwerveModulePosition[] {
           m_frontLeft.getPosition(),
           m_frontRight.getPosition(),
@@ -62,6 +68,14 @@ public class DriveSubsystem extends SubsystemBase {
   public DriveSubsystem() {
     // Usage reporting for MAXSwerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_MaxSwerve);
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    m_frontLeft.updateSimState();
+    m_frontRight.updateSimState();
+    m_rearLeft.updateSimState();
+    m_rearRight.updateSimState();
   }
 
   @Override
@@ -79,7 +93,14 @@ public class DriveSubsystem extends SubsystemBase {
     SmartDashboard.putNumber(getName(), getPose().getX());
     SmartDashboard.putNumber(getName() + "/Y", getPose().getY());
     SmartDashboard.putNumber(getName() + "/Heading", getPose().getRotation().getDegrees());
+
+    Logger.recordOutput("Odometry/Robot", getPose());
+    // Publica el estado de los módulos (para la pestaña Swerve)
+    Logger.recordOutput("SwerveStates/Measured", getModuleStates());
+    // (Opcional) Publica lo que el robot QUIERE hacer vs lo que MIDE
+    Logger.recordOutput("SwerveStates/Desired", getDesiredStates());
   }
+
   
   /**
    * Returns the currently-estimated pose of the robot.
@@ -208,7 +229,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   /** Zeroes the heading of the robot. */
   public void zeroHeading() {
-    m_gyro.reset();
+    m_gyro.reset();; //m_gyro.reset();
   }
 
   /**
@@ -226,7 +247,32 @@ public class DriveSubsystem extends SubsystemBase {
    * @return The turn rate of the robot, in degrees per second
    */
   public double getTurnRate() {
-    return m_gyro.getRate() * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
+    return m_gyro.getRate() * (DriveConstants.kGyroReversed ? -1.0 : 1.0); //	m_pigeon.getAngularVelocityZWorld().getValueAsDouble()
+  } 
+
+   /**
+   * Devuelve el estado actual medido de los 4 módulos.
+   */
+  public SwerveModuleState[] getModuleStates() {
+    return new SwerveModuleState[] {
+        m_frontLeft.getState(),
+        m_frontRight.getState(),
+        m_rearLeft.getState(),
+        m_rearRight.getState()
+    };
+  }
+
+  /**
+   * Devuelve el estado deseado (comandado) de los 4 módulos.
+   * Esto es útil en AdvantageScope para comparar error (Desired vs Measured).
+   */
+  public SwerveModuleState[] getDesiredStates() {
+    return new SwerveModuleState[] {
+        m_frontLeft.getDesiredState(),
+        m_frontRight.getDesiredState(),
+        m_rearLeft.getDesiredState(),
+        m_rearRight.getDesiredState()
+    };
   }
   
 }

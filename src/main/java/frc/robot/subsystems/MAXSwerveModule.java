@@ -18,6 +18,14 @@ import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import frc.robot.Constants;
 
+import com.revrobotics.sim.SparkMaxSim;
+
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+
 import frc.robot.Configs;
 
 public class MAXSwerveModule {
@@ -32,6 +40,12 @@ public class MAXSwerveModule {
 
   private double m_chassisAngularOffset = 0;
   private SwerveModuleState m_desiredState = new SwerveModuleState(0.0, new Rotation2d());
+
+  private SparkMaxSim m_drivingSparkSim;
+  private SparkMaxSim m_turningSparkSim;
+  private DCMotorSim m_driveSim;
+  private DCMotorSim m_turnSim;
+
 
   /**
    * Constructs a MAXSwerveModule and configures the driving and turning motor,
@@ -60,6 +74,19 @@ public class MAXSwerveModule {
     m_chassisAngularOffset = chassisAngularOffset;
     m_desiredState.angle = new Rotation2d(m_turningEncoder.getPosition());
     m_drivingEncoder.setPosition(0);
+
+    if (RobotBase.isSimulation()) {
+      m_driveSim = new DCMotorSim(
+          LinearSystemId.createDCMotorSystem(DCMotor.getNEO(1), 4.71, 0.025), 
+          DCMotor.getNEO(1)
+      );
+      m_turnSim = new DCMotorSim(
+          LinearSystemId.createDCMotorSystem(DCMotor.getNeo550(1), 7.39, 0.004), 
+          DCMotor.getNeo550(1)
+      );
+      m_drivingSparkSim = new SparkMaxSim(m_drivingSpark, DCMotor.getNEO(1));
+      m_turningSparkSim = new SparkMaxSim(m_turningSpark, DCMotor.getNeo550(1));
+    }
   }
 
   /**
@@ -79,12 +106,6 @@ public class MAXSwerveModule {
  * @return The current position of the module.
  */
 public SwerveModulePosition getPosition() {
-    // Convertir rotaciones del motor → metros recorridos
-    double positionMeters =
-        m_drivingEncoder.getPosition()
-        / Constants.ModuleConstants.kDrivingMotorReduction
-        * Constants.ModuleConstants.kWheelCircumferenceMeters;
-
     return new SwerveModulePosition(
         m_drivingEncoder.getPosition(),
         new Rotation2d(m_turningEncoder.getPosition() - m_chassisAngularOffset));
@@ -124,4 +145,26 @@ public SwerveModulePosition getPosition() {
   public void resetEncoders() {
     m_drivingEncoder.setPosition(0);
   }
+
+  public void updateSimState() {
+    if (!RobotBase.isSimulation()) return;
+    
+    // Si la velocidad deseada es casi cero, pero el motor sigue girando, aplicamos freno
+    double driveVoltage = m_drivingSparkSim.getAppliedOutput() * RoboRioSim.getVInVoltage();
+    if (Math.abs(m_desiredState.speedMetersPerSecond) < 0.1 && Math.abs(m_driveSim.getAngularVelocityRPM()) > 50) {
+        // Aplicamos un voltaje inverso para simular el freno de la llanta
+        driveVoltage = -Math.signum(m_driveSim.getAngularVelocityRPM()) * 2.0; 
+    }
+
+    // Actualizar motor de tracción con la fricción aplicada
+    m_driveSim.setInput(driveVoltage);
+    m_driveSim.update(0.02);
+    m_drivingSparkSim.iterate(m_driveSim.getAngularVelocityRPM(), RoboRioSim.getVInVoltage(), 0.02);
+
+    // Actualizar motor de giro (este no suele necesitar freno extra)
+    m_turnSim.setInput(m_turningSparkSim.getAppliedOutput() * RoboRioSim.getVInVoltage());
+    m_turnSim.update(0.02);
+    m_turningSparkSim.iterate(m_turnSim.getAngularVelocityRPM(), RoboRioSim.getVInVoltage(), 0.02);
+  }
+
 }
