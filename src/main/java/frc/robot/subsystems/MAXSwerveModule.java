@@ -77,11 +77,11 @@ public class MAXSwerveModule {
 
     if (RobotBase.isSimulation()) {
       m_driveSim = new DCMotorSim(
-          LinearSystemId.createDCMotorSystem(DCMotor.getNEO(1), 4.71, 0.025), 
+          LinearSystemId.createDCMotorSystem(DCMotor.getNEO(1), 4.71, 0.0001), 
           DCMotor.getNEO(1)
       );
       m_turnSim = new DCMotorSim(
-          LinearSystemId.createDCMotorSystem(DCMotor.getNeo550(1), 7.39, 0.004), 
+          LinearSystemId.createDCMotorSystem(DCMotor.getNeo550(1), 7.39, 0.0001), 
           DCMotor.getNeo550(1)
       );
       m_drivingSparkSim = new SparkMaxSim(m_drivingSpark, DCMotor.getNEO(1));
@@ -148,23 +148,16 @@ public SwerveModulePosition getPosition() {
 
   public void updateSimState() {
     if (!RobotBase.isSimulation()) return;
-    
-    // Si la velocidad deseada es casi cero, pero el motor sigue girando, aplicamos freno
-    double driveVoltage = m_drivingSparkSim.getAppliedOutput() * RoboRioSim.getVInVoltage();
-    if (Math.abs(m_desiredState.speedMetersPerSecond) < 0.1 && Math.abs(m_driveSim.getAngularVelocityRPM()) > 50) {
-        // Aplicamos un voltaje inverso para simular el freno de la llanta
-        driveVoltage = -Math.signum(m_driveSim.getAngularVelocityRPM()) * 2.0; 
-    }
 
-    // Actualizar motor de tracción con la fricción aplicada
-    m_driveSim.setInput(driveVoltage);
+    // Actualizar motor de tracción
+    m_driveSim.setInput(m_drivingSparkSim.getAppliedOutput() * RoboRioSim.getVInVoltage());
     m_driveSim.update(0.02);
-    m_drivingSparkSim.iterate(m_driveSim.getAngularVelocityRPM(), RoboRioSim.getVInVoltage(), 0.02);
+    m_drivingSparkSim.iterate(m_driveSim.getAngularVelocityRPM() * 4.71, RoboRioSim.getVInVoltage(), 0.02);
 
-    // Actualizar motor de giro (este no suele necesitar freno extra)
+    // Actualizar motor de giro
     m_turnSim.setInput(m_turningSparkSim.getAppliedOutput() * RoboRioSim.getVInVoltage());
     m_turnSim.update(0.02);
-    m_turningSparkSim.iterate(m_turnSim.getAngularVelocityRPM(), RoboRioSim.getVInVoltage(), 0.02);
+    m_turningSparkSim.iterate(m_turnSim.getAngularVelocityRPM() * 7.39, RoboRioSim.getVInVoltage(), 0.02);
   }
 
 }
